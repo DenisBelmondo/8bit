@@ -1,19 +1,19 @@
 // Copyright 2022 Rachael Alexanderson
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,17 +29,47 @@
 // Lookup tables for Windows and Macintosh sourced from this wikipedia page:
 // https://en.wikipedia.org/w/index.php?title=List_of_software_palettes&oldid=1053490836
 
-hardwareshader postprocess screen
+hardwareshader postprocess beforebloom
 {
-	Name "8bit"
+	Name "8bitBeforeBloom"
 	Shader "8bit.glsl" 330
 	Texture tclut "TCLUT8"
 	Texture egalut "egapal"
 	Texture maclut "macpal"
 	Texture winlut "winpal"
-	cvar_uniform int c_mode pal_mode 3
-	cvar_uniform int c_set pal_set 0
-	cvar_uniform int c_sqsize pal_sqsize 2
-	cvar_uniform float c_bias pal_bias 0.9
-	Enabled
+	Uniform int c_mode
+	Uniform int c_set
+	Uniform float c_mixer
+	Uniform int c_sqsize
+	Uniform float c_bias
+}
+
+hardwareshader postprocess scene
+{
+	Name "8bitScene"
+	Shader "8bit.glsl" 330
+	Texture tclut "TCLUT8"
+	Texture egalut "egapal"
+	Texture maclut "macpal"
+	Texture winlut "winpal"
+	Uniform int c_mode
+	Uniform int c_set
+	Uniform float c_mixer
+	Uniform int c_sqsize
+	Uniform float c_bias
+}
+
+hardwareshader postprocess screen
+{
+	Name "8bitScreen"
+	Shader "8bit.glsl" 330
+	Texture tclut "TCLUT8"
+	Texture egalut "egapal"
+	Texture maclut "macpal"
+	Texture winlut "winpal"
+	Uniform int c_mode
+	Uniform int c_set
+	Uniform float c_mixer
+	Uniform int c_sqsize
+	Uniform float c_bias
 }
