@@ -39,8 +39,10 @@ OptionValue "PalModes"
 OptionValue "PalSets"
 {
 	0, "Game-Specific"
-	1, "EGA 16-Color"
-	2, "EGA 64-Color"
+	1, "EGA 64-Color"
+	2, "EGA 16-Color"
+	3, "Windows 16-color"
+	4, "Macintosh 16-color"
 }
 
 OptionValue "PalPP"
@@ -55,4 +57,6 @@ AddOptionMenu VideoOptions
 	Option "Palettizing Mode", pal_mode, "PalModes"
 	Option "Palette Set", pal_set, "PalSets"
 	Option "Palette Post-Processing Mode", pal_pp, "PalPP"
+	Slider "Palette Square Size", pal_sqsize, 2, 8, 1
+	slider "Palette Diffusion Bias", pal_bias, 0.5, 2.0, 0.1
 }

@@ -42,13 +42,13 @@ vec4 paldownmix(vec4 c)
 	return texture(tclut, vec2(tx, ty));
 }
 
-vec4 egadownmix(vec4 c)
+vec4 fbdownmix(vec4 c, sampler2D fblut)
 {
 	float fdiff = 3.0;
 	float fattr = 0;
 	for (int i = 0; i < 16; i++)
 	{
-		vec3 lu = abs(pow(vec3(texture(egalut, vec2((i + 0.5) / 16, 0.5))), vec3(2.2)) - pow(vec3(c), vec3(2.2)));
+		vec3 lu = abs(pow(vec3(texture(fblut, vec2((i + 0.5) / 16, 0.5))), vec3(2.2)) - pow(vec3(c), vec3(2.2)));
 		float diff = lu.r + lu.g + lu.b;
 		if (fdiff > diff)
 		{
@@ -56,7 +56,7 @@ vec4 egadownmix(vec4 c)
 			fattr = float(i);
 		}
 	}
-	return texture(egalut, vec2((fattr + 0.5) / 16.0, 0.5));
+	return texture(fblut, vec2((fattr + 0.5) / 16.0, 0.5));
 }
 
 vec4 hiegadownmix(vec4 c)
@@ -74,25 +74,25 @@ vec4 downmix(vec4 c)
 	case 0:
 		return paldownmix(c);
 	case 1:
-		return egadownmix(c);
-	case 2:
 		return hiegadownmix(c);
+	case 2:
+		return fbdownmix(c, egalut);
+	case 3:
+		return fbdownmix(c, winlut);
+	case 4:
+		return fbdownmix(c, maclut);
 	}
 }
 
-vec4 dither1(vec4 c)
+vec4 dither(vec4 c, int count)
 {
-	return downmix(clamp(c * vec4(vec3(2.0), 1.0) - downmix(c), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)));
-}
-
-vec4 dither2(vec4 c)
-{
-	return downmix(clamp(c * vec4(vec3(3.0), 1.0) - dither1(c) - downmix(c), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)));
-}
-
-vec4 dither3(vec4 c)
-{
-	return downmix(clamp(c * vec4(vec3(4.0), 1.0) - dither2(c) - dither1(c) - downmix(c), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)));
+	vec4 r = c;
+	for (; count>=0; count--)
+	{
+		r = r + (c - downmix(clamp(r, vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)))) * c_bias;
+	}
+	r = downmix(clamp(r, vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)));
+	return r;
 }
 
 float brightness(vec3 c)
@@ -119,33 +119,26 @@ void main()
 		bool checker = ((int(txc.x) + int(txc.y)) & 1) == 1;
 
 		if (checker)
-			FragColor = dither1(c);
+			FragColor = dither(c, 1);
 		else
 			FragColor = downmix(c);
 		break;
 	case 3:
-		int pos = (int(txc.x) & 1) + (int(txc.y) & 1) * 2;
-		switch (pos)
-		{
-		default:
-		case 0:
-			FragColor = downmix(c);
-			break;
-		case 1:
-			FragColor = dither1(c);
-			break;
-		case 3:
-			FragColor = dither2(c);
-			break;
-		case 2:
-			FragColor = dither3(c);
-			break;
-		}		
+		if ((int(txc.y) & 1) == 1)
+			txc.x = 1.0 - txc.x;
+
+		int pos = (int(txc.x) % c_sqsize) + (int(txc.y) % c_sqsize) * c_sqsize;
+
+		if (pos == 0)
+			FragColor = downmix(clamp(c, vec4(0.0, 0.0, 0.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0)));
+		else
+			FragColor = dither(clamp(c, vec4(0.0, 0.0, 0.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0)), pos);
+
 		break;
 	case 4:
 		vec4 o1 = c;
 		vec4 o2 = downmix(c);
-		vec4 o3 = dither1(c);
+		vec4 o3 = dither(c, 1);
 
 		float bri1 = max(brightness(vec3(o1)), 0.0001);
 		float bri2 = max(brightness(vec3(o2)), 0.0001);
@@ -161,7 +154,7 @@ void main()
 			FragColor = downmix(c) * bri1 / bri2;
 		else
 		{
-			vec4 o4 = (downmix(c) * dd3 + dither1(c) * dd2) / (dd2 + dd3);
+			vec4 o4 = (downmix(c) * dd3 + o3 * dd2) / (dd2 + dd3);
 			float bri4 = max(brightness(vec3(o4)), 0.0001);
 			FragColor = o4 * bri1 / bri4;
 		}

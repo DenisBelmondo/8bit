@@ -26,15 +26,22 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Lookup tables for Windows and Macintosh sourced from this wikipedia page:
+// https://en.wikipedia.org/w/index.php?title=List_of_software_palettes&oldid=1053490836
+
 hardwareshader postprocess beforebloom
 {
 	Name "8bitBeforeBloom"
 	Shader "8bit.glsl" 330
 	Texture tclut "TCLUT8"
 	Texture egalut "egapal"
+	Texture maclut "macpal"
+	Texture winlut "winpal"
 	Uniform int c_mode
 	Uniform int c_set
 	Uniform float c_mixer
+	Uniform int c_sqsize pal_sqsize 2
+	Uniform float c_bias pal_bias 0.9
 }
 
 hardwareshader postprocess scene
@@ -43,18 +50,26 @@ hardwareshader postprocess scene
 	Shader "8bit.glsl" 330
 	Texture tclut "TCLUT8"
 	Texture egalut "egapal"
+	Texture maclut "macpal"
+	Texture winlut "winpal"
 	Uniform int c_mode
 	Uniform int c_set
 	Uniform float c_mixer
+	Uniform int c_sqsize pal_sqsize 2
+	Uniform float c_bias pal_bias 0.9
 }
 
-hardwareshader postprocess screen
+hardwareshader postprocess scene
 {
-	Name "8bitScreen"
+	Name "8bitScene"
 	Shader "8bit.glsl" 330
 	Texture tclut "TCLUT8"
 	Texture egalut "egapal"
+	Texture maclut "macpal"
+	Texture winlut "winpal"
 	Uniform int c_mode
 	Uniform int c_set
 	Uniform float c_mixer
+	Uniform int c_sqsize pal_sqsize 2
+	Uniform float c_bias pal_bias 0.9
 }
