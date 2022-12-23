@@ -1,0 +1,3 @@
+nosave int pal_pp = 0;
+nosave int pal_mode = 3;
+nosave int pal_set = 0;
