@@ -40,8 +40,8 @@ hardwareshader postprocess beforebloom
 	Uniform int c_mode
 	Uniform int c_set
 	Uniform float c_mixer
-	Uniform int c_sqsize pal_sqsize 2
-	Uniform float c_bias pal_bias 0.9
+	Uniform int c_sqsize
+	Uniform float c_bias
 }
 
 hardwareshader postprocess scene
@@ -55,13 +55,13 @@ hardwareshader postprocess scene
 	Uniform int c_mode
 	Uniform int c_set
 	Uniform float c_mixer
-	Uniform int c_sqsize pal_sqsize 2
-	Uniform float c_bias pal_bias 0.9
+	Uniform int c_sqsize
+	Uniform float c_bias
 }
 
-hardwareshader postprocess scene
+hardwareshader postprocess screen
 {
-	Name "8bitScene"
+	Name "8bitScreen"
 	Shader "8bit.glsl" 330
 	Texture tclut "TCLUT8"
 	Texture egalut "egapal"
@@ -70,6 +70,6 @@ hardwareshader postprocess scene
 	Uniform int c_mode
 	Uniform int c_set
 	Uniform float c_mixer
-	Uniform int c_sqsize pal_sqsize 2
-	Uniform float c_bias pal_bias 0.9
+	Uniform int c_sqsize
+	Uniform float c_bias
 }
