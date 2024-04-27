@@ -33,7 +33,7 @@ hardwareshader postprocess beforebloom
 {
 	Name "8bitBeforeBloom"
 	Shader "8bit.glsl" 330
-	Texture tclut "TCLUT8"
+	Texture tclut "TCLUT512"
 	Texture egalut "egapal"
 	Texture maclut "macpal"
 	Texture winlut "winpal"
@@ -48,7 +48,7 @@ hardwareshader postprocess scene
 {
 	Name "8bitScene"
 	Shader "8bit.glsl" 330
-	Texture tclut "TCLUT8"
+	Texture tclut "TCLUT512"
 	Texture egalut "egapal"
 	Texture maclut "macpal"
 	Texture winlut "winpal"
@@ -63,7 +63,7 @@ hardwareshader postprocess screen
 {
 	Name "8bitScreen"
 	Shader "8bit.glsl" 330
-	Texture tclut "TCLUT8"
+	Texture tclut "TCLUT512"
 	Texture egalut "egapal"
 	Texture maclut "macpal"
 	Texture winlut "winpal"

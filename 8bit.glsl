@@ -1,19 +1,19 @@
 // Copyright 2022 Rachael Alexanderson
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,19 +27,24 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-vec4 paldownmix(vec4 c)
+ivec2 getLUTCoordForRGB(vec3 fragcol)
 {
-	float cr = floor(c.r * 255.0);
-	float cg = floor(c.g * 255.0);
-	float cb = floor(c.b * 255.0);
+    int b = int(clamp(fragcol.b * 63, 0, 63));
+    ivec2 bluecoord = ivec2(b % 8, b / 8) * 64;
+    ivec2 rgcoord = ivec2(
+        int(clamp(fragcol.r * 63, 0, 63)),
+        int(clamp(fragcol.g * 63, 0, 63)));
 
-	float lut = cb * 65536.0 + cg * 256.0 + cr * 1.0;
-	float cy = floor(lut / 4096.0);
-	float cx = lut - cy * 4096.0;
+	return bluecoord + rgcoord;
+}
 
-	float tx = (cx + .5) / 4096.0;
-	float ty = (cy + .5) / 4096.0;
-	return texture(tclut, vec2(tx, ty));
+vec3 paldownmix(vec3 color)
+{
+	ivec3 c = ivec3(clamp(color.rgb, vec3(0.0), vec3(1.0)) * 63.0 + 0.5);
+	int index = (c.r * 64 + c.g) * 64 + c.b;
+	int tx = index % 512;
+	int ty = index / 512;
+	return texelFetch(tclut, getLUTCoordForRGB(color), 0).rgb;
 }
 
 vec4 fbdownmix(vec4 c, sampler2D fblut)
@@ -72,7 +77,7 @@ vec4 downmix(vec4 c)
 	{
 	default:
 	case 0:
-		return paldownmix(c);
+		return vec4(paldownmix(c.rgb), 1.0);
 	case 1:
 		return hiegadownmix(c);
 	case 2:
@@ -160,4 +165,3 @@ void main()
 		}
 	}
 }
-
