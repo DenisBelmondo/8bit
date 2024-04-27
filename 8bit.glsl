@@ -27,24 +27,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-ivec2 getLUTCoordForRGB(vec3 fragcol)
-{
-    int b = int(clamp(fragcol.b * 63, 0, 63));
-    ivec2 bluecoord = ivec2(b % 8, b / 8) * 64;
-    ivec2 rgcoord = ivec2(
-        int(clamp(fragcol.r * 63, 0, 63)),
-        int(clamp(fragcol.g * 63, 0, 63)));
-
-	return bluecoord + rgcoord;
-}
-
 vec3 paldownmix(vec3 color)
 {
 	ivec3 c = ivec3(clamp(color.rgb, vec3(0.0), vec3(1.0)) * 63.0 + 0.5);
 	int index = (c.r * 64 + c.g) * 64 + c.b;
 	int tx = index % 512;
 	int ty = index / 512;
-	return texelFetch(tclut, getLUTCoordForRGB(color), 0).rgb;
+	return texelFetch(tclut, ivec2(tx, ty), 0).rgb;
 }
 
 vec4 fbdownmix(vec4 c, sampler2D fblut)
