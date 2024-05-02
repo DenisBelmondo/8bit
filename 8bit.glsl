@@ -70,17 +70,17 @@ vec3 lerpLchHue(in vec3 a, in vec3 b, in float x)
 #define xy_to_XYZ(x, y) vec3(x/y, 1.0, (1.0 - x - y)/y)
 #define xy_to_xyz(x, y) vec3(x, y, 1.0 - x - y)
 
-mat3 BFD = mat3(0.8951, -0.7502, 0.0389, 0.2664, 1.7135, -0.0685, -0.1614, 0.0367, 1.0296);
+mat3 BFD;
 
-vec3 D50 = xy_to_XYZ(0.34567, 0.35850);
-vec3 D65 = xy_to_XYZ(0.31271, 0.32902);
-mat3 D65_TO_D50 = inverse(BFD)*diag3((BFD*D50)/(BFD*D65))*BFD;
+vec3 D50;
+vec3 D65;
+mat3 D65_TO_D50;
 
-mat3 sRGB = mat3(xy_to_XYZ(0.64, 0.33), xy_to_XYZ(0.30, 0.60), xy_to_XYZ(0.15, 0.06));
-mat3 sRGB_TO_XYZ_D65 = sRGB*diag3(inverse(sRGB)*D65);
-mat3 sRGB_TO_XYZ_D50 = D65_TO_D50*sRGB_TO_XYZ_D65;
-mat3 XYZ_D65_TO_sRGB = inverse(sRGB_TO_XYZ_D65);
-mat3 XYZ_D50_TO_sRGB = inverse(sRGB_TO_XYZ_D50);
+mat3 sRGB;
+mat3 sRGB_TO_XYZ_D65;
+mat3 sRGB_TO_XYZ_D50;
+mat3 XYZ_D65_TO_sRGB;
+mat3 XYZ_D50_TO_sRGB;
 
 // LCh(ab) ↔ Lab ↔ XYZ ↔ sRGB
 
@@ -237,6 +237,18 @@ void main()
 	vec4 c = clamp(texture(InputTexture, TexCoord), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
 
 	vec2 txc = TexCoord * textureSize(InputTexture, 0);
+
+	BFD = mat3(0.8951, -0.7502, 0.0389, 0.2664, 1.7135, -0.0685, -0.1614, 0.0367, 1.0296);
+
+	D50 = xy_to_XYZ(0.34567, 0.35850);
+	D65 = xy_to_XYZ(0.31271, 0.32902);
+	D65_TO_D50 = inverse(BFD)*diag3((BFD*D50)/(BFD*D65))*BFD;
+
+	sRGB = mat3(xy_to_XYZ(0.64, 0.33), xy_to_XYZ(0.30, 0.60), xy_to_XYZ(0.15, 0.06));
+	sRGB_TO_XYZ_D65 = sRGB*diag3(inverse(sRGB)*D65);
+	sRGB_TO_XYZ_D50 = D65_TO_D50*sRGB_TO_XYZ_D65;
+	XYZ_D65_TO_sRGB = inverse(sRGB_TO_XYZ_D65);
+	XYZ_D50_TO_sRGB = inverse(sRGB_TO_XYZ_D50);
 
 	switch (c_mode)
 	{
