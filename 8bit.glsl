@@ -1,19 +1,19 @@
-// Copyright 2022 Rachael Alexanderson
-// 
+// Copyright 2022-2024 Rachael Alexanderson, DenisBelmondo
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from this
 //    software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,6 +26,123 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+
+#define PI 3.14159365
+#define TAU 6.28318531
+
+//
+// nmz@shadertoy/stormoid@twitter: cheaply lerp around a circle
+//
+float lerpAng(in float a, in float b, in float x)
+{
+    float ang = mod(mod((a-b), TAU) + PI*3., TAU)-PI;
+    return ang*x+b;
+}
+
+vec3 lerpLch(in vec3 a, in vec3 b, in float x)
+{
+    float hue = lerpAng(a.z, b.z, x);
+    return vec3(mix(b.xy, a.xy, x), hue);
+}
+
+#define diag3(v) mat3((v).x, 0.0, 0.0, 0.0, (v).y, 0.0, 0.0, 0.0, (v).z)
+#define xyY_to_XYZ(x, y, Y) vec3(Y/y*x, Y, Y/y*(1.0 - x - y))
+#define xy_to_XYZ(x, y) vec3(x/y, 1.0, (1.0 - x - y)/y)
+#define xy_to_xyz(x, y) vec3(x, y, 1.0 - x - y)
+
+const mat3 BFD = mat3(0.8951, -0.7502, 0.0389, 0.2664, 1.7135, -0.0685, -0.1614, 0.0367, 1.0296);
+
+const vec3 D50 = xy_to_XYZ(0.34567, 0.35850);
+const vec3 D65 = xy_to_XYZ(0.31271, 0.32902);
+const mat3 D65_TO_D50 = inverse(BFD)*diag3((BFD*D50)/(BFD*D65))*BFD;
+
+const mat3 sRGB = mat3(xy_to_XYZ(0.64, 0.33), xy_to_XYZ(0.30, 0.60), xy_to_XYZ(0.15, 0.06));
+const mat3 sRGB_TO_XYZ_D65 = sRGB*diag3(inverse(sRGB)*D65);
+const mat3 sRGB_TO_XYZ_D50 = D65_TO_D50*sRGB_TO_XYZ_D65;
+const mat3 XYZ_D65_TO_sRGB = inverse(sRGB_TO_XYZ_D65);
+const mat3 XYZ_D50_TO_sRGB = inverse(sRGB_TO_XYZ_D50);
+
+vec3 sRGB_OETF(vec3 c) {
+	vec3 a = 12.92*c;
+	vec3 b = 1.055*pow(c, vec3(1.0/2.4)) - 0.055;
+	return mix(a, b, greaterThan(c, vec3(0.00313066844250063)));
+}
+
+vec3 sRGB_EOTF(vec3 c) {
+	vec3 a = c/12.92;
+	vec3 b = pow((c + 0.055)/1.055, vec3(2.4));
+	return mix(a, b, greaterThan(c, vec3(0.0404482362771082)));
+}
+
+// LCh(ab) ↔ Lab ↔ XYZ ↔ sRGB
+
+vec3 XYZ_to_Lab(vec3 XYZ, vec3 XYZw) {
+	vec3 t = XYZ/XYZw;
+	vec3 a = pow(t, vec3(1.0/3.0));
+	vec3 b = 841.0/108.0*t + 4.0/29.0;
+	vec3 c = mix(b, a, greaterThan(t, vec3(216.0/24389.0)));
+	return vec3(1.16*c.y - 0.16, vec2(5.0, 2.0)*(c.xy - c.yz));
+}
+
+vec3 Lab_to_XYZ(vec3 Lab, vec3 XYZw) {
+	float L = (Lab.x + 0.16)/1.16;
+	vec3 t = vec3(L + Lab.y/5.0, L, L - Lab.z/2.0);
+	vec3 a = pow(t, vec3(3.0));
+	vec3 b = 108.0/841.0*(t - 4.0/29.0);
+	return XYZw*mix(b, a, greaterThan(t, vec3(6.0/29.0)));
+}
+
+vec3 LCh_to_Lab(vec3 LCh) {
+	return vec3(LCh.x, LCh.y*vec2(cos(LCh.z), sin(LCh.z)));
+}
+
+vec3 Lab_to_LCh(vec3 Lab) {
+	return vec3(Lab.x, length(Lab.yz), atan(Lab.z, Lab.y));
+}
+
+vec3 sRGB_to_Lab(vec3 sRGB) {
+	return XYZ_to_Lab(sRGB_TO_XYZ_D50*sRGB, D50);
+}
+
+vec3 Lab_to_sRGB(vec3 Lab) {
+	return XYZ_D50_TO_sRGB*Lab_to_XYZ(Lab, D50);
+}
+
+// LCh(uv) ↔ Luv ↔ XYZ ↔ sRGB
+
+#define XYZ_to_uv(XYZ) vec2(4.0, 9.0)*XYZ.xy/(XYZ.x + 15.0*XYZ.y + 3.0*XYZ.z)
+#define xy_to_uv(xy) vec2(4.0, 9.0)*xy/(-2.0*xy.x + 12.0*xy.y + 3.0)
+#define uv_to_xy(uv) vec2(9.0, 4.0)*uv/(6.0*uv.x - 16.0*uv.y + 12.0)
+
+vec3 XYZ_to_Luv(vec3 XYZ, vec3 XYZw) {
+	float Y = XYZ.y/XYZw.y;
+	float L = Y > 216.0/24389.0 ? 1.16*pow(Y, 1.0/3.0) - 0.16 : 24389.0/2700.0*Y;
+	return vec3(L, 13.0*L*(XYZ_to_uv(XYZ) - XYZ_to_uv(XYZw)));
+}
+
+vec3 Luv_to_XYZ(vec3 Luv, vec3 XYZw) {
+	vec2 uv = Luv.yz/(13.0*Luv.x) + XYZ_to_uv(XYZw);
+	float Y = Luv.x > 0.08 ? pow((Luv.x + 0.16)/1.16, 3.0) : 2700.0/24389.0*Luv.x;
+	float X = (9.0*uv.x)/(4.0*uv.y);
+	float Z = (12.0 - 3.0*uv.x - 20.0*uv.y)/(4.0*uv.y);
+	return XYZw.y*vec3(Y*X, Y, Y*Z);
+}
+
+vec3 LCh_to_Luv(vec3 LCh) {
+	return vec3(LCh.x, LCh.y*vec2(cos(LCh.z), sin(LCh.z)));
+}
+
+vec3 Luv_to_LCh(vec3 Luv) {
+	return vec3(Luv.x, length(Luv.yz), atan(Luv.z, Luv.y));
+}
+
+vec3 sRGB_to_Luv(vec3 sRGB) {
+	return XYZ_to_Luv(sRGB_TO_XYZ_D65*sRGB, D65);
+}
+
+vec3 Luv_to_sRGB(vec3 Luv) {
+	return XYZ_D65_TO_sRGB*Luv_to_XYZ(Luv, D65);
+}
 
 vec4 paldownmix(vec4 c)
 {
@@ -100,6 +217,16 @@ float brightness(vec3 c)
 	return pow(dot(pow(vec3(c), vec3(2.2)), vec3(0.2126, 0.7152, 0.0722)), 1.0/2.2);
 }
 
+float hypot(vec2 z) {
+	float t;
+	float x = abs(z.x);
+	float y = abs(z.y);
+	t = min(x, y);
+	x = max(x, y);
+	t = t / x;
+	return (z.x == 0.0 && z.y == 0.0) ? 0.0 : x * sqrt(1.0 + t * t);
+}
+
 void main()
 {
 	vec4 c = clamp(texture(InputTexture, TexCoord), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
@@ -136,27 +263,107 @@ void main()
 
 		break;
 	case 4:
-		vec4 o1 = c;
-		vec4 o2 = downmix(c);
-		vec4 o3 = dither(c, 1);
-
-		float bri1 = max(brightness(vec3(o1)), 0.0001);
-		float bri2 = max(brightness(vec3(o2)), 0.0001);
-		float bri3 = max(brightness(vec3(o3)), 0.0001);
-
-		vec3 d2 = vec3(abs(o1 - o2));
-		vec3 d3 = vec3(abs(o1 - o3));
-
-		float dd2 = d2.r + d2.g + d2.b;
-		float dd3 = d3.r + d3.g + d3.b;
-
-		if (dd2 + dd3 <= 0.0)
-			FragColor = downmix(c) * bri1 / bri2;
-		else
+		switch (c_blend_mode)
 		{
-			vec4 o4 = (downmix(c) * dd3 + o3 * dd2) / (dd2 + dd3);
-			float bri4 = max(brightness(vec3(o4)), 0.0001);
-			FragColor = o4 * bri1 / bri4;
+		case 0:
+			vec4 o1 = c;
+			vec4 o2 = downmix(c);
+			vec4 o3 = dither(c, 1);
+
+			float bri1 = max(brightness(vec3(o1)), 0.0001);
+			float bri2 = max(brightness(vec3(o2)), 0.0001);
+			float bri3 = max(brightness(vec3(o3)), 0.0001);
+
+			vec3 d2 = vec3(abs(o1 - o2));
+			vec3 d3 = vec3(abs(o1 - o3));
+
+			float dd2 = d2.r + d2.g + d2.b;
+			float dd3 = d3.r + d3.g + d3.b;
+
+			if (dd2 + dd3 <= 0.0)
+				FragColor = downmix(c) * bri1 / bri2;
+			else
+			{
+				vec4 o4 = (downmix(c) * dd3 + o3 * dd2) / (dd2 + dd3);
+				float bri4 = max(brightness(vec3(o4)), 0.0001);
+				FragColor = o4 * bri1 / bri4;
+			}
+
+			break;
+		case 1:
+			vec3 comp;
+			vec3 cLCH = Lab_to_LCh(sRGB_to_Lab(c.rgb));
+			vec3 downmixed = Lab_to_LCh(sRGB_to_Lab(downmix(c).rgb));
+
+			float A1 = cLCH[1];
+			float B1 = cLCH[2];
+			float c1 = hypot(vec2(A1, B1));
+
+			if (c1 > 1e-6)
+			{
+				float A2 = downmixed[1];
+				float B2 = downmixed[2];
+				float c2 = hypot(vec2(A2, B2));
+				float A  = c2 * A1 / c1;
+				float B  = c2 * B1 / c1;
+
+				comp[0] = cLCH[0];
+				comp[1] = A;
+				comp[2] = B;
+			}
+			else
+			{
+				comp[0] = cLCH[0];
+				comp[1] = cLCH[1];
+				comp[2] = cLCH[2];
+			}
+
+			FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(comp));
+
+			break;
+		case 2:
+			vec3 comp2;
+			vec3 cLCH2 = Lab_to_LCh(sRGB_to_Lab(c.rgb));
+			vec3 downmixed2 = Lab_to_LCh(sRGB_to_Lab(downmix(c).rgb));
+
+			comp2[0] = cLCH2[0];
+			comp2[1] = downmixed2[1];
+			comp2[2] = downmixed2[2];
+
+			FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(comp2));
+
+			break;
+		case 3:
+			vec3 comp3;
+			vec3 cLCH3 = Lab_to_LCh(sRGB_to_Lab(c.rgb));
+			vec3 downmixed3 = Lab_to_LCh(sRGB_to_Lab(downmix(c).rgb));
+
+			float A2 = downmixed3[1];
+			float B2 = downmixed3[2];
+			float c2 = hypot(vec2(A2, B2));
+
+			if (c2 > 1e-6)
+			{
+				float A1 = cLCH3[1];
+				float B1 = cLCH3[2];
+				float c1 = hypot(vec2(A1, B1));
+				float A  = c1 * A2 / c2;
+				float B  = c1 * B2 / c2;
+
+				comp3[0] = cLCH3[0];
+				comp3[1] = A;
+				comp3[2] = B;
+			}
+			else
+			{
+				comp3[0] = cLCH3[0];
+				comp3[1] = cLCH3[1];
+				comp3[2] = cLCH3[2];
+			}
+
+			FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(comp3));
+
+			break;
 		}
 	}
 }

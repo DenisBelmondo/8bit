@@ -3,3 +3,4 @@ nosave int pal_mode = 3;
 nosave int pal_set = 0;
 nosave float pal_sqsize = 2;
 nosave float pal_bias = 0.9;
+nosave int pal_blend_mode = 0;
