@@ -43,6 +43,7 @@ hardwareshader postprocess beforebloom
 	Uniform int c_sqsize
 	Uniform float c_bias
 	Uniform int c_blend_mode
+	Uniform float c_blend_amount
 }
 
 hardwareshader postprocess scene
@@ -59,6 +60,7 @@ hardwareshader postprocess scene
 	Uniform int c_sqsize
 	Uniform float c_bias
 	Uniform int c_blend_mode
+	Uniform float c_blend_amount
 }
 
 hardwareshader postprocess screen
@@ -75,4 +77,5 @@ hardwareshader postprocess screen
 	Uniform int c_sqsize
 	Uniform float c_bias
 	Uniform int c_blend_mode
+	Uniform float c_blend_amount
 }

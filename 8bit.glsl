@@ -39,10 +39,23 @@ float lerpAng(in float a, in float b, in float x)
     return ang*x+b;
 }
 
-vec3 lerpLch(in vec3 a, in vec3 b, in float x)
+vec3 lerpLchColor(in vec3 a, in vec3 b, in float x)
 {
-    float hue = lerpAng(a.z, b.z, x);
-    return vec3(mix(b.xy, a.xy, x), hue);
+    float hue = lerpAng(b.z, a.z, x);
+	float chroma = lerpAng(b.y, a.y, x);
+    return vec3(a.x, chroma, hue);
+}
+
+vec3 lerpLchChroma(in vec3 a, in vec3 b, in float x)
+{
+	float chroma = lerpAng(b.y, a.y, x);
+	return vec3(a.x, chroma, a.z);
+}
+
+vec3 lerpLchHue(in vec3 a, in vec3 b, in float x)
+{
+	float hue = lerpAng(b.z, a.z, x);
+	return vec3(a.x, a.y, hue);
 }
 
 #define diag3(v) mat3((v).x, 0.0, 0.0, 0.0, (v).y, 0.0, 0.0, 0.0, (v).z)
@@ -50,17 +63,17 @@ vec3 lerpLch(in vec3 a, in vec3 b, in float x)
 #define xy_to_XYZ(x, y) vec3(x/y, 1.0, (1.0 - x - y)/y)
 #define xy_to_xyz(x, y) vec3(x, y, 1.0 - x - y)
 
-const mat3 BFD = mat3(0.8951, -0.7502, 0.0389, 0.2664, 1.7135, -0.0685, -0.1614, 0.0367, 1.0296);
+mat3 BFD = mat3(0.8951, -0.7502, 0.0389, 0.2664, 1.7135, -0.0685, -0.1614, 0.0367, 1.0296);
 
-const vec3 D50 = xy_to_XYZ(0.34567, 0.35850);
-const vec3 D65 = xy_to_XYZ(0.31271, 0.32902);
-const mat3 D65_TO_D50 = inverse(BFD)*diag3((BFD*D50)/(BFD*D65))*BFD;
+vec3 D50 = xy_to_XYZ(0.34567, 0.35850);
+vec3 D65 = xy_to_XYZ(0.31271, 0.32902);
+mat3 D65_TO_D50 = inverse(BFD)*diag3((BFD*D50)/(BFD*D65))*BFD;
 
-const mat3 sRGB = mat3(xy_to_XYZ(0.64, 0.33), xy_to_XYZ(0.30, 0.60), xy_to_XYZ(0.15, 0.06));
-const mat3 sRGB_TO_XYZ_D65 = sRGB*diag3(inverse(sRGB)*D65);
-const mat3 sRGB_TO_XYZ_D50 = D65_TO_D50*sRGB_TO_XYZ_D65;
-const mat3 XYZ_D65_TO_sRGB = inverse(sRGB_TO_XYZ_D65);
-const mat3 XYZ_D50_TO_sRGB = inverse(sRGB_TO_XYZ_D50);
+mat3 sRGB = mat3(xy_to_XYZ(0.64, 0.33), xy_to_XYZ(0.30, 0.60), xy_to_XYZ(0.15, 0.06));
+mat3 sRGB_TO_XYZ_D65 = sRGB*diag3(inverse(sRGB)*D65);
+mat3 sRGB_TO_XYZ_D50 = D65_TO_D50*sRGB_TO_XYZ_D65;
+mat3 XYZ_D65_TO_sRGB = inverse(sRGB_TO_XYZ_D65);
+mat3 XYZ_D50_TO_sRGB = inverse(sRGB_TO_XYZ_D50);
 
 vec3 sRGB_OETF(vec3 c) {
 	vec3 a = 12.92*c;
@@ -217,16 +230,6 @@ float brightness(vec3 c)
 	return pow(dot(pow(vec3(c), vec3(2.2)), vec3(0.2126, 0.7152, 0.0722)), 1.0/2.2);
 }
 
-float hypot(vec2 z) {
-	float t;
-	float x = abs(z.x);
-	float y = abs(z.y);
-	t = min(x, y);
-	x = max(x, y);
-	t = t / x;
-	return (z.x == 0.0 && z.y == 0.0) ? 0.0 : x * sqrt(1.0 + t * t);
-}
-
 void main()
 {
 	vec4 c = clamp(texture(InputTexture, TexCoord), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
@@ -263,11 +266,30 @@ void main()
 
 		break;
 	case 4:
-		switch (c_blend_mode)
+		vec4 o1 = c;
+		vec4 o2 = downmix(c);
+
+		if (c_blend_mode > 0)
 		{
-		case 0:
-			vec4 o1 = c;
-			vec4 o2 = downmix(c);
+			vec3 comp;
+			vec3 cLCH = Lab_to_LCh(sRGB_to_Lab(o1.rgb));
+			vec3 downmixed = Lab_to_LCh(sRGB_to_Lab(o2.rgb));
+
+			switch (c_blend_mode)
+			{
+			case 1:
+				FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(lerpLchColor(cLCH, downmixed, c_blend_amount)));
+				break;
+			case 2:
+				FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(lerpLchChroma(cLCH, downmixed, c_blend_amount)));
+				break;
+			case 3:
+				FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(lerpLchHue(cLCH, downmixed, c_blend_amount)));
+				break;
+			}
+		}
+		else
+		{
 			vec4 o3 = dither(c, 1);
 
 			float bri1 = max(brightness(vec3(o1)), 0.0001);
@@ -288,82 +310,6 @@ void main()
 				float bri4 = max(brightness(vec3(o4)), 0.0001);
 				FragColor = o4 * bri1 / bri4;
 			}
-
-			break;
-		case 1:
-			vec3 comp;
-			vec3 cLCH = Lab_to_LCh(sRGB_to_Lab(c.rgb));
-			vec3 downmixed = Lab_to_LCh(sRGB_to_Lab(downmix(c).rgb));
-
-			float A1 = cLCH[1];
-			float B1 = cLCH[2];
-			float c1 = hypot(vec2(A1, B1));
-
-			if (c1 > 1e-6)
-			{
-				float A2 = downmixed[1];
-				float B2 = downmixed[2];
-				float c2 = hypot(vec2(A2, B2));
-				float A  = c2 * A1 / c1;
-				float B  = c2 * B1 / c1;
-
-				comp[0] = cLCH[0];
-				comp[1] = A;
-				comp[2] = B;
-			}
-			else
-			{
-				comp[0] = cLCH[0];
-				comp[1] = cLCH[1];
-				comp[2] = cLCH[2];
-			}
-
-			FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(comp));
-
-			break;
-		case 2:
-			vec3 comp2;
-			vec3 cLCH2 = Lab_to_LCh(sRGB_to_Lab(c.rgb));
-			vec3 downmixed2 = Lab_to_LCh(sRGB_to_Lab(downmix(c).rgb));
-
-			comp2[0] = cLCH2[0];
-			comp2[1] = downmixed2[1];
-			comp2[2] = downmixed2[2];
-
-			FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(comp2));
-
-			break;
-		case 3:
-			vec3 comp3;
-			vec3 cLCH3 = Lab_to_LCh(sRGB_to_Lab(c.rgb));
-			vec3 downmixed3 = Lab_to_LCh(sRGB_to_Lab(downmix(c).rgb));
-
-			float A2 = downmixed3[1];
-			float B2 = downmixed3[2];
-			float c2 = hypot(vec2(A2, B2));
-
-			if (c2 > 1e-6)
-			{
-				float A1 = cLCH3[1];
-				float B1 = cLCH3[2];
-				float c1 = hypot(vec2(A1, B1));
-				float A  = c1 * A2 / c2;
-				float B  = c1 * B2 / c2;
-
-				comp3[0] = cLCH3[0];
-				comp3[1] = A;
-				comp3[2] = B;
-			}
-			else
-			{
-				comp3[0] = cLCH3[0];
-				comp3[1] = cLCH3[1];
-				comp3[2] = cLCH3[2];
-			}
-
-			FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(comp3));
-
-			break;
 		}
 	}
 }
