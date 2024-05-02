@@ -52,11 +52,23 @@ OptionValue "PalPP"
 	2, "Screen"
 }
 
+OptionValue "PalBlendMode"
+{
+	0, "HSV"
+	1, "LCH Color"
+	2, "LCH Chroma"
+	3, "LCH Hue"
+}
+
 AddOptionMenu VideoOptions
 {
+	StaticText ""
+	StaticText "Palette Shader Options"
 	Option "Palettizing Mode", pal_mode, "PalModes"
 	Option "Palette Set", pal_set, "PalSets"
 	Option "Palette Post-Processing Mode", pal_pp, "PalPP"
 	Slider "Palette Square Size", pal_sqsize, 2, 8, 1
 	slider "Palette Diffusion Bias", pal_bias, 0.5, 2.0, 0.1
+	Option "Palette Blend Mode", pal_blend_mode, "PalBlendMode"
+	Slider "Palette LCH Blend Strength", pal_blend_amount, 0.0, 1.0, 0.1
 }
