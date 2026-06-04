@@ -301,6 +301,8 @@ void main()
 				FragColor.rgb = Lab_to_sRGB(LCh_to_Lab(lerpLchHue(cLCH, downmixed, c_blend_amount)));
 				break;
 			}
+
+			FragColor.rgb = clamp(FragColor.rgb, vec3(0), vec3(1));
 		}
 		else
 		{
