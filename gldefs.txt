@@ -42,8 +42,11 @@ hardwareshader postprocess beforebloom
 	Uniform float c_mixer
 	Uniform int c_sqsize
 	Uniform float c_bias
-	Uniform int c_blend_mode
-	Uniform float c_blend_amount
+	Uniform int c_blend_space
+	Uniform float c_blend_hue
+	Uniform float c_blend_sat
+	Uniform float c_blend_lum
+	Uniform int c_hue_dir
 }
 
 hardwareshader postprocess scene
@@ -59,8 +62,11 @@ hardwareshader postprocess scene
 	Uniform float c_mixer
 	Uniform int c_sqsize
 	Uniform float c_bias
-	Uniform int c_blend_mode
-	Uniform float c_blend_amount
+	Uniform int c_blend_space
+	Uniform float c_blend_hue
+	Uniform float c_blend_sat
+	Uniform float c_blend_lum
+	Uniform int c_hue_dir
 }
 
 hardwareshader postprocess screen
@@ -76,6 +82,9 @@ hardwareshader postprocess screen
 	Uniform float c_mixer
 	Uniform int c_sqsize
 	Uniform float c_bias
-	Uniform int c_blend_mode
-	Uniform float c_blend_amount
+	Uniform int c_blend_space
+	Uniform float c_blend_hue
+	Uniform float c_blend_sat
+	Uniform float c_blend_lum
+	Uniform int c_hue_dir
 }

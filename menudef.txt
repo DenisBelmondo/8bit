@@ -34,6 +34,7 @@ OptionValue "PalModes"
 	2, "Checkerboard Dither"
 	3, "Square Dither"
 	4, "Blended"
+	5, "Channel Blend"
 }
 
 OptionValue "PalSets"
@@ -52,12 +53,22 @@ OptionValue "PalPP"
 	2, "Screen"
 }
 
-OptionValue "PalBlendMode"
+OptionValue "PalBlendSpace"
 {
+	1, "CIE LCH(ab)"
+	2, "OkLCH"
+	3, "CIE LCH(uv)"
 	0, "HSV"
-	1, "LCH Color"
-	2, "LCH Chroma"
-	3, "LCH Hue"
+	5, "HSL"
+	4, "YIQ (NTSC)"
+}
+
+OptionValue "PalHueDir"
+{
+	0, "Shortest"
+	1, "Longest"
+	2, "Increasing"
+	3, "Decreasing"
 }
 
 AddOptionMenu VideoOptions
@@ -69,6 +80,9 @@ AddOptionMenu VideoOptions
 	Option "Palette Post-Processing Mode", pal_pp, "PalPP"
 	Slider "Palette Square Size", pal_sqsize, 2, 8, 1
 	slider "Palette Diffusion Bias", pal_bias, 0.5, 2.0, 0.1
-	Option "Palette Blend Mode", pal_blend_mode, "PalBlendMode"
-	Slider "Palette LCH Blend Strength", pal_blend_amount, 0.0, 1.0, 0.1
+	Option "Palette Blend Space", pal_blend_space, "PalBlendSpace"
+	Slider "Palette Blend Hue", pal_blend_hue, 0.0, 1.0, 0.05
+	Slider "Palette Blend Saturation/Chroma", pal_blend_sat, 0.0, 1.0, 0.05
+	Slider "Palette Blend Value/Luminance", pal_blend_lum, 0.0, 1.0, 0.05
+	Option "Palette Blend Hue Direction", pal_blend_hue_dir, "PalHueDir"
 }
