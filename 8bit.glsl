@@ -159,19 +159,27 @@ vec3 Luv_to_sRGB(vec3 Luv) {
 }
 */
 
+//
+// DenisBelmondo: index with integers, not floats.
+//
+// The float form this replaced is correct in IEEE float32 -- 65536*b is exactly
+// representable, 4096 is a power of two, and every floor() lands on the right
+// integer -- but it does not survive real drivers. Measured against a probe
+// sweep, pure blues above roughly b=111 fetched a texel from somewhere else
+// entirely and came back violet, while the identical lookup indexed with ints
+// was correct for all 256 values. Red and green never showed it because their
+// lut values stay small; blue reaches 16.7 million.
+//
+
 vec4 paldownmix(vec4 c)
 {
-	float cr = floor(c.r * 255.0);
-	float cg = floor(c.g * 255.0);
-	float cb = floor(c.b * 255.0);
+	ivec3 q = ivec3(clamp(c.rgb, vec3(0.0), vec3(1.0))*255.0 + 0.5);
 
-	float lut = cb * 65536.0 + cg * 256.0 + cr * 1.0;
-	float cy = floor(lut / 4096.0);
-	float cx = lut - cy * 4096.0;
+	int lut = q.b*65536 + q.g*256 + q.r;
+	int cy = lut/4096;
+	int cx = lut - cy*4096;
 
-	float tx = (cx + .5) / 4096.0;
-	float ty = (cy + .5) / 4096.0;
-	return texture(tclut, vec2(tx, ty));
+	return texture(tclut, (vec2(cx, cy) + 0.5)/4096.0);
 }
 
 vec4 fbdownmix(vec4 c, sampler2D fblut)
